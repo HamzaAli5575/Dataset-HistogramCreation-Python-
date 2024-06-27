@@ -1,0 +1,45 @@
+!pip install pyspark
+from pyspark.sql import SparkSession
+import matplotlib.pyplot as plt
+import numpy as np
+
+spark = SparkSession.builder.appName("WordCount").getOrCreate()
+textFile = spark.sparkContext.textFile("words_to_count.txt")
+
+lineCount = textFile.count()
+print("Total lines: ", lineCount)
+
+characterCount = textFile.map(lambda line: len(line))
+print("Total characters per line: ", characterCount.collect())
+
+totalCharCount = characterCount.reduce(lambda x, y: x + y)
+print("Total characters:", totalCharCount)
+
+wordCount = textFile.flatMap(lambda line: line.split()).count()
+print("Total number of words:", wordCount)
+
+# @title Create Histogram
+charCountHisto = characterCount.collect()
+wordCountHisto = textFile.flatMap(lambda line: line.split()).map(lambda
+word: len(word)).collect()
+# Plot the histogram
+# Calculate histogram for characters
+char_hist, char_bins = np.histogram(charCountHisto, bins=10)
+char_bin_centers = 0.5 * (char_bins[:-1] + char_bins[1:])
+# Calculate histogram for word lengths
+word_hist, word_bins = np.histogram(wordCountHisto, bins=10)
+word_bin_centers = 0.5 * (word_bins[:-1] + word_bins[1:])
+# Plotting the histograms
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.bar(char_bin_centers, char_hist, width=1)
+plt.title("Character Count Histogram")
+plt.xlabel("Number of Characters")
+plt.ylabel("Frequency")
+plt.subplot(1, 2, 2)
+plt.bar(word_bin_centers, word_hist, width=1)
+plt.title("Word Length Histogram")
+plt.xlabel("Length of Words")
+plt.ylabel("Frequency")
+plt.tight_layout()
+plt.show()
